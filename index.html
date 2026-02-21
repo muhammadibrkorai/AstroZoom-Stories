@@ -3,15 +3,23 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AstroZoom Global Stories - v2.3</title>
+    <title>AstroZoom Stories - Global Board</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-      import { getFirestore, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+      import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-      // 🔑 PASTE YOUR FIREBASE CONFIG KEYS BELOW
+      // 🔑 PASTE YOUR CONFIG HERE
       const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
+        apiKey: // 🔑 PASTE YOUR CONFIG HERE
+      const firebaseConfig = {
+        apiKey: "YOUR_KEY",
+        authDomain: "YOUR_PROJECT.firebaseapp.com",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT.appspot.com",
+        messagingSenderId: "YOUR_ID",
+        appId: "YOUR_APP_ID"
+      };,
         authDomain: "YOUR_PROJECT.firebaseapp.com",
         projectId: "YOUR_PROJECT_ID",
         storageBucket: "YOUR_PROJECT.appspot.com",
@@ -19,39 +27,52 @@
         appId: "YOUR_APP_ID"
       };
 
-      // Initialize Firebase
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
 
-      // Function to Save Story
+      // --- 1. SENDING STORIES ---
       window.submitStory = async () => {
           const text = document.getElementById('storyInput').value;
-          if(!text) return alert("Write something first!");
+          if(!text) return alert("Please write a story first!");
+          await addDoc(collection(db, "stories"), {
+              content: text,
+              timestamp: serverTimestamp()
+          });
+          document.getElementById('storyInput').value = "";
+      };
 
-          try {
-              await addDoc(collection(db, "stories"), {
-                  content: text,
-                  timestamp: serverTimestamp()
-              });
-              alert("Innovation Successful! Story saved to the cloud.");
-              document.getElementById('storyInput').value = "";
-          } catch (e) {
-              console.error("Error: ", e);
-              alert("Something went wrong. Check the console.");
-          }
-      }
+      // --- 2. SHOWING STORIES ---
+      const q = query(collection(db, "stories"), orderBy("timestamp", "desc"));
+      onSnapshot(q, (snapshot) => {
+          const list = document.getElementById('storyList');
+          list.innerHTML = ""; // Clear list
+          snapshot.forEach((doc) => {
+              const data = doc.data();
+              const div = document.createElement('div');
+              div.className = "p-4 bg-slate-800 rounded-lg border border-slate-700 mb-3 animate-fade-in";
+              div.innerHTML = `<p class="text-slate-200">${data.content}</p>
+                               <small class="text-slate-500">${data.timestamp?.toDate().toLocaleString() || 'Just now'}</small>`;
+              list.appendChild(div);
+          });
+      });
     </script>
 </head>
-<body class="bg-slate-950 text-white p-8">
-    <div class="max-w-2xl mx-auto bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-2xl">
-        <h1 class="text-3xl font-bold text-blue-400 mb-2">AstroZoom Global</h1>
-        <p class="text-slate-500 mb-6 italic">Innovation • Practicality • Value</p>
+<body class="bg-slate-950 text-white font-sans p-6">
+    <div class="max-w-3xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-blue-400">AstroZoom Global</h1>
+            <p class="text-slate-400 italic">Innovation • Practicality • Value</p>
+        </header>
 
-        <textarea id="storyInput" class="w-full h-40 p-4 bg-slate-800 border border-slate-700 rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Write a story for the world to see..."></textarea>
-        
-        <button onclick="submitStory()" class="w-full py-4 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-lg shadow-lg shadow-blue-900/20 transition-all">
-            Upload to Global Server
-        </button>
+        <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 mb-8">
+            <textarea id="storyInput" class="w-full h-32 p-4 bg-slate-800 rounded-xl mb-4 outline-none focus:ring-2 focus:ring-blue-500" placeholder="Write your story for the world..."></textarea>
+            <button onclick="submitStory()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold transition">Post Story</button>
+        </div>
+
+        <h2 class="text-2xl font-semibold mb-4 text-blue-300">Live Stories</h2>
+        <div id="storyList" class="space-y-4">
+            <p class="text-slate-600">Connecting to global server...</p>
+        </div>
     </div>
 </body>
 </html>
